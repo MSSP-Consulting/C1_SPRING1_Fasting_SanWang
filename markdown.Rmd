@@ -1,0 +1,39 @@
+---
+title: "Statistical Analysis on Fasting Data"
+author: "Danya Zhang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#read in the data
+library(readxl)
+data_fasting <- read_excel("MIT Fasting Study PN#358.xlsx")
+```
+
+```{r}
+#visualizing data
+boxplot(GLU12HFast ~ GenderAgeCat, data=data_fasting, frame = FALSE,
+        col = c("#00AFBB", "#E7B800"), ylab="GLU12HFast")
+```
+
+```{r}
+#two-way anova test
+#see if GLU12HFast levels are affected by age and gender
+glu12hfast <- aov(GLU12HFast ~ AgeCat + Gender, data = data_fasting)
+summary(glu12hfast)
+```
+Based on the p-values, it seems like neither AgeCat nor Gender are very telling 
+of glucose levels after 12-hour fast. 
+
+```{r}
+#36 hour fast results
+glu36hfast <- aov(GLU36HFast ~ AgeCat + Gender, data = data_fasting)
+summary(glu36hfast)
+```
+Based on the p-values, it seems like neither AgeCat nor Gender are very telling 
+of glucose levels after 36-hour fast. 
