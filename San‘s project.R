@@ -25,3 +25,4 @@ cor(newdata12_cor)
 #rbind(newdata12,newdata36)
 #data[110] is data$Cholesterol26HFast
 
+

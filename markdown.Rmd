@@ -37,3 +37,84 @@ summary(glu36hfast)
 ```
 Based on the p-values, it seems like neither AgeCat nor Gender are very telling 
 of glucose levels after 36-hour fast. 
+
+```{r}
+#separate data in 12H and 36H measurements
+col_ind_12 <- grep("12", names(data_fasting))
+data_fasting_12 <- data_fasting[,c(1:16,col_ind_12)]
+
+col_ind_36 <- grep("36", names(data_fasting))
+length(col_ind_36) #not the length as the vector with 12H measurements
+#incorrect column name 26 instead of 36 @column 110
+typo1 <- setdiff(1:180,c(col_ind_36,col_ind_12,1:16))
+colnames(data_fasting)[typo1] <- "Cholesterol36HFast" #fix column name
+#Correct column indexes
+col_ind_36 <- grep("36", names(data_fasting)) 
+data_fasting_36 <- data_fasting[,c(1:16, col_ind_36)]
+
+names_in12H <- names(data_fasting_12)
+names_in36H <- names(data_fasting_36)
+
+#get rid of numbers in column names
+names_in12H_1 <- gsub("12", "", names_in12H)
+names_in36H_1 <- gsub("36", "", names_in36H)
+
+#names_in12H_1 and names_in36H_1 should be the same. let's check
+setdiff(names_in12H_1,names_in36H_1) #there are inconsistencies in the column names
+#"LeuOxidhFed"  "GlucoseHFast" "ARGHFast"  
+
+#to see how these variable names are spelled in the names_in36H_1, switch input order
+setdiff(names_in36H_1,names_in12H_1)
+#"LeuOxidHFed"  "GlusoceHFast" "ARGHFAst" 
+
+#let's find where they are in the original data frame and correct them
+typo2 <- grep("LeuOxid12hFed", names(data_fasting))
+colnames(data_fasting)[typo2] <- "LeuOxid12HFed" #fix column name
+typo3 <- grep("Glusoce36HFast", names(data_fasting))
+colnames(data_fasting)[typo3] <- "Glucose36HFast" #fix column name
+typo4 <- grep("ARG36HFAst", names(data_fasting))
+colnames(data_fasting)[typo4] <- "ARG36HFast" #fix column name
+
+#now the source data should be consistent, let's start over
+col_ind_12 <- grep("12", names(data_fasting))
+data_fasting_12 <- data_fasting[,c(1:16,col_ind_12)]
+col_ind_36 <- grep("36", names(data_fasting))
+data_fasting_36 <- data_fasting[,c(1:16, col_ind_36)]
+
+#let's check length
+length(col_ind_12) == length(col_ind_36) #great, all good
+
+data_fasting_12 <- as.data.frame(data_fasting_12)
+data_fasting_36 <- as.data.frame(data_fasting_36)
+
+#columns must have same names to stack, get rid of "12"
+dimnames(data_fasting_12)[[2]] <- c(names(data_fasting_12)[1:16], gsub("12", "", grep("12", names(data_fasting_12), value=TRUE)))
+dimnames(data_fasting_36)[[2]] <- c(names(data_fasting_36)[1:16], gsub("36", "", grep("36", names(data_fasting_36), value=TRUE)))
+
+#let's make a binary indicator variable for the fasting duration
+#0 will indicate a 12H fast
+#1 will indicate a 36H fast
+
+data_fasting_12$Ind36H <- 0
+data_fasting_36$Ind36H <- 1
+
+#stack 12H data and 36H data
+new_data_fasting <- rbind(data_fasting_12, data_fasting_36[,dimnames(data_fasting_12)[[2]]])
+#now we have a dataframe that be used to create our model
+```
+
+
+```{r}
+#multilevel model, fixed intercept, varying slope
+library(lme4)
+m1 <- lmer(GLUHFast ~ Ind36H + (Ind36H - 1 | AgeCat), data = new_data_fasting)
+summary(m1)
+coef(m1)
+#having trouble interpreting results
+
+#multilevel model, fixed intercept, varying slope, with a predictor
+m2 <- lmer(GLUHFast ~ ActivityLevel + Ind36H + (Ind36H + ActivityLevel:Ind36H - 1 | AgeCat), data = new_data_fasting)
+summary(m2)
+coef(m2)
+```
+
