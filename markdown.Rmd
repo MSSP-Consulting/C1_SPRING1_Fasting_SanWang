@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #read in the data
 library(readxl)
+library(tidyverse)
 data_fasting <- read_excel("MIT Fasting Study PN#358.xlsx")
 ```
 
@@ -117,4 +118,29 @@ m2 <- lmer(GLUHFast ~ ActivityLevel + Ind36H + (Ind36H + ActivityLevel:Ind36H - 
 summary(m2)
 coef(m2)
 ```
+```{r}
+library(ggplot2)
+#create the cor table for all data, to find some high effect variables
+new_data_cor <- as.data.frame(lapply(new_data_fasting,as.numeric))
+cor_table <- cor(new_data_cor)
 
+
+
+#fit the mix linear model with random intercept, group by subject
+model_fit3 <- lmer(EEHFast ~ Gender*AgeCat+(1|Name),data = new_data_fasting)
+summary(model_fit3)
+
+#plot how the EEHfast change with age and gender
+ggplot(data = new_data_fasting) + 
+  aes(x = Age, y = EEHFast) + 
+  geom_point() + 
+  geom_smooth(formula = 'y ~ x', method = "lm") + 
+  labs(titile = "", x = "", y = "")
+
+EEHFast_agecat <- ggplot(data = new_data_fasting) + 
+  aes(x = Age, y = EEHFast) + 
+  geom_point(aes(color = factor(Gender)), size = .6,alpha = 0.1) + 
+  geom_smooth(aes(color = factor(Gender)), method = "lm", se = FALSE, formula = 'y ~ x') + 
+  labs(title = "", x = "age", y = "")
+EEHFast_agecat
+```
