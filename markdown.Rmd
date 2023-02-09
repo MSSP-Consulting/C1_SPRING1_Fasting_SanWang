@@ -135,12 +135,12 @@ ggplot(data = new_data_fasting) +
   aes(x = Age, y = EEHFast) + 
   geom_point() + 
   geom_smooth(formula = 'y ~ x', method = "lm") + 
-  labs(titile = "", x = "", y = "")
+  labs(titile = "", x = "", y = "EEFast")
 
 EEHFast_agecat <- ggplot(data = new_data_fasting) + 
   aes(x = Age, y = EEHFast) + 
   geom_point(aes(color = factor(Gender)), size = .6,alpha = 0.1) + 
   geom_smooth(aes(color = factor(Gender)), method = "lm", se = FALSE, formula = 'y ~ x') + 
-  labs(title = "", x = "age", y = "")
+  labs(title = "", x = "age", y = "EEFast")
 EEHFast_agecat
 ```
