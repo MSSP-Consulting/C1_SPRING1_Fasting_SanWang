@@ -124,10 +124,11 @@ library(ggplot2)
 new_data_cor <- as.data.frame(lapply(new_data_fasting,as.numeric))
 cor_table <- cor(new_data_cor)
 
-
-
+#easy ANOVA
+EEfast_aov <- aov(EEHFast ~ AgeCat + Gender, data = new_data_fasting)
+summary(EEfast_aov)
 #fit the mix linear model with random intercept, group by subject
-model_fit3 <- lmer(EEHFast ~ Gender*AgeCat+(1|Name),data = new_data_fasting)
+model_fit3 <- lmer(EEHFast ~ Gender*AgeCat+Ind36H+(1|Name),data = new_data_fasting)
 summary(model_fit3)
 
 plot(model_fit3)
