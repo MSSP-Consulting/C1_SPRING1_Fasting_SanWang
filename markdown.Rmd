@@ -131,6 +131,9 @@ model_fit3 <- lmer(EEHFast ~ Gender*AgeCat+(1|Name),data = new_data_fasting)
 summary(model_fit3)
 
 plot(model_fit3)
+#res <- residuals()
+plot( model_fit3, resid(., type = "pearson") ~ fitted(.) | Name,
+  id = 0.05, adj = -0.3 )
 
 #plot how the EEHfast change with age and gender
 ggplot(data = new_data_fasting) + 
