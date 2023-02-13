@@ -130,6 +130,8 @@ cor_table <- cor(new_data_cor)
 model_fit3 <- lmer(EEHFast ~ Gender*AgeCat+(1|Name),data = new_data_fasting)
 summary(model_fit3)
 
+plot(model_fit3)
+
 #plot how the EEHfast change with age and gender
 ggplot(data = new_data_fasting) + 
   aes(x = Age, y = EEHFast) + 
