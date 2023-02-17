@@ -119,3 +119,28 @@ coef(m2)
 #here we have a fixed intercept for every model and different coefficients with respect to treatment for every subject. The effect of age is reflected in the coefficient for AgeCat
 ```
 
+```{r}
+#residual plots
+plot(m1)
+plot(m2)
+
+#based on these plots, it seems like a m1 is a better fit for the data.
+#we should move forward with this varying intercepts fixed slopes model.
+library(performance)
+model_performance(m1) #checking R2 
+```
+
+```{r}
+#may delete
+#let's do some model selection
+#include variables that you think might be relevant
+library(cAIC4)
+full.model <- lm(GLUHFast ~ Gender + Age + BMI + Ind36H + ActivityLevel, data=new_data_fasting)
+gc <- c("Name", "AgeCat")
+stepwise_M1 <- stepcAIC(full.model, groupCandidates=gc, 
+         data=new_data_fasting, trace=TRUE, 
+         direction="forward", returnResult=TRUE)
+
+tmp <- lmer(GLUHFast~ Gender + Age + BMI + Ind36H + ActivityLevel + (1 | Name) + (1 | AgeCat), data=new_data_fasting)
+model_performance(tmp)
+```
