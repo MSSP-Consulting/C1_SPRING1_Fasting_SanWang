@@ -111,13 +111,13 @@ rownames(new_data_fasting) <- 1:nrow(new_data_fasting)
 ```{r}
 library(lme4)
 #multilevel model, varying intercepts, constant slopes
-m1 <- lmer(GLUHFast ~ Ind36H + Age + (1 | Name), data=new_data_fasting)
+m1 <- lmer(GLUHFast ~ Ind36H + AgeCat + (1 | Name), data=new_data_fasting)
 summary(m1)
 coef(m1)
 #every subject has a different intercept, but the changes in treatment and age are reflected in the coefficients for Ind36H and AgeCat
 
 #multilevel model, fixed intercept, varying slope
-m2 <- lmer(GLUHFast ~ Ind36H + Age + (Ind36H - 1 | Name), data=new_data_fasting)
+m2 <- lmer(GLUHFast ~ Ind36H + AgeCat + (Ind36H - 1 | Name), data=new_data_fasting)
 summary(m2)
 coef(m2)
 #here we have a fixed intercept for every model and different coefficients with respect to treatment for every subject. The effect of age is reflected in the coefficient for AgeCat
