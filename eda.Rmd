@@ -1,0 +1,180 @@
+---
+title: "Statistical Analysis on Fasting Data"
+author: "Danya Zhang"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#read in the data
+library(readxl)
+data_fasting <- read_excel("MIT Fasting Study PN#358.xlsx")
+```
+
+```{r}
+#visualizing data
+boxplot(GLU12HFast ~ GenderAgeCat, data=data_fasting, frame = FALSE,
+        col = c("#00AFBB", "#E7B800"), ylab="GLU12HFast")
+```
+
+```{r}
+#two-way anova test
+#see if GLU12HFast levels are affected by age and gender
+glu12hfast <- aov(GLU12HFast ~ AgeCat + Gender, data = data_fasting)
+summary(glu12hfast)
+```
+Based on the p-values, it seems like neither AgeCat nor Gender are very telling 
+of glucose levels after 12-hour fast. 
+
+```{r}
+#36 hour fast results
+glu36hfast <- aov(GLU36HFast ~ AgeCat + Gender, data = data_fasting)
+summary(glu36hfast)
+```
+Based on the p-values, it seems like neither AgeCat nor Gender are very telling 
+of glucose levels after 36-hour fast. 
+
+```{r}
+#separate data in 12H and 36H measurements
+col_ind_12 <- grep("12", names(data_fasting))
+data_fasting_12 <- data_fasting[,c(1:16,col_ind_12)]
+
+col_ind_36 <- grep("36", names(data_fasting))
+length(col_ind_36) #not the length as the vector with 12H measurements
+#incorrect column name 26 instead of 36 @column 110
+typo1 <- setdiff(1:180,c(col_ind_36,col_ind_12,1:16))
+colnames(data_fasting)[typo1] <- "Cholesterol36HFast" #fix column name
+#Correct column indexes
+col_ind_36 <- grep("36", names(data_fasting)) 
+data_fasting_36 <- data_fasting[,c(1:16, col_ind_36)]
+
+names_in12H <- names(data_fasting_12)
+names_in36H <- names(data_fasting_36)
+
+#get rid of numbers in column names
+names_in12H_1 <- gsub("12", "", names_in12H)
+names_in36H_1 <- gsub("36", "", names_in36H)
+
+#names_in12H_1 and names_in36H_1 should be the same. let's check
+setdiff(names_in12H_1,names_in36H_1) #there are inconsistencies in the column names
+#"LeuOxidhFed"  "GlucoseHFast" "ARGHFast"  
+
+#to see how these variable names are spelled in the names_in36H_1, switch input order
+setdiff(names_in36H_1,names_in12H_1)
+#"LeuOxidHFed"  "GlusoceHFast" "ARGHFAst" 
+
+#let's find where they are in the original data frame and correct them
+typo2 <- grep("LeuOxid12hFed", names(data_fasting))
+colnames(data_fasting)[typo2] <- "LeuOxid12HFed" #fix column name
+typo3 <- grep("Glusoce36HFast", names(data_fasting))
+colnames(data_fasting)[typo3] <- "Glucose36HFast" #fix column name
+typo4 <- grep("ARG36HFAst", names(data_fasting))
+colnames(data_fasting)[typo4] <- "ARG36HFast" #fix column name
+
+#now the source data should be consistent, let's start over
+col_ind_12 <- grep("12", names(data_fasting))
+data_fasting_12 <- data_fasting[,c(1:16,col_ind_12)]
+col_ind_36 <- grep("36", names(data_fasting))
+data_fasting_36 <- data_fasting[,c(1:16, col_ind_36)]
+
+#let's check length
+length(col_ind_12) == length(col_ind_36) #great, all good
+
+data_fasting_12 <- as.data.frame(data_fasting_12)
+data_fasting_36 <- as.data.frame(data_fasting_36)
+
+#columns must have same names to stack, get rid of "12"
+dimnames(data_fasting_12)[[2]] <- c(names(data_fasting_12)[1:16], gsub("12", "", grep("12", names(data_fasting_12), value=TRUE)))
+dimnames(data_fasting_36)[[2]] <- c(names(data_fasting_36)[1:16], gsub("36", "", grep("36", names(data_fasting_36), value=TRUE)))
+
+#let's make a binary indicator variable for the fasting duration
+#0 will indicate a 12H fast
+#1 will indicate a 36H fast
+
+data_fasting_12$Ind36H <- 0
+data_fasting_36$Ind36H <- 1
+
+#stack 12H data and 36H data
+new_data_fasting <- rbind(data_fasting_12, data_fasting_36[,dimnames(data_fasting_12)[[2]]])
+
+#the row indexes are off
+rownames(new_data_fasting) <- 1:nrow(new_data_fasting)
+
+#now we have a dataframe that be used to create our model
+```
+
+
+```{r}
+library(lme4)
+#multilevel model, varying intercepts, constant slopes
+m1 <- lmer(GLUHFast ~ Ind36H + Age + (1 | Name), data=new_data_fasting)
+summary(m1)
+coef(m1)
+#every subject has a different intercept, but the changes in treatment and age are reflected in the coefficients for Ind36H and AgeCat
+
+#multilevel model, fixed intercept, varying slope
+m2 <- lmer(GLUHFast ~ Ind36H + Age + (Ind36H - 1 | Name), data=new_data_fasting)
+summary(m2)
+coef(m2)
+#here we have a fixed intercept for every model and different coefficients with respect to treatment for every subject. The effect of age is reflected in the coefficient for AgeCat
+```
+
+```{r}
+#residual plots
+plot(m1, ylab="Residual", xlab="Fitted Value", main="m1 Resid vs fitted")
+plot(m2, ylab="Residual", xlab="Fitted Value", main="m2 Resid vs fitted")
+
+#based on these plots, it seems like a m1 is a better fit for the data.
+#we should move forward with this varying intercepts fixed slopes model.
+library(performance)
+model_performance(m1) #checking R2 
+
+library(ggplot2)
+g2 <- qplot(resid(m1),
+               geom = "histogram",
+               bins = 10) +
+         labs(title = "Histogram of residuals",
+              x = "residual")
+
+g3 <- ggplot(data = new_data_fasting,
+               aes(sample = resid(m1))) +
+        geom_qq() +
+        geom_qq_line(colour = "red") +
+        labs(title = "Quantile plot of residuals", x="theoretical",y="sample")
+library(cowplot)
+plot_grid(g2, g3, ncol = 2, labels = "auto")
+```
+
+```{r}
+#let's do some model selection
+#include variables that you think might be relevant
+library(cAIC4)
+full.model <- lm(GLUHFast ~ Gender + Age + Weight + Height + ActivityLevel + FatMass + ArmLegMass + BMI + Ind36H, data=new_data_fasting)
+gc <- c("Name")
+stepwise_M1 <- stepcAIC(full.model, groupCandidates=gc, 
+         data=new_data_fasting, trace=TRUE, 
+         direction="forward", returnResult=TRUE)
+
+best_mod_m1 <- lmer(GLUHFast ~ Gender + Age + Weight + Height + ActivityLevel + FatMass + ArmLegMass + BMI + Ind36H + (1 | Name), data=new_data_fasting)
+model_performance(best_mod_m1)
+```
+
+```{r}
+#we'd like to see if there are any interactions between predictors
+pairs(data_fasting[,c(2,3,6:9)],pch=19)
+#seems like there is slight correlation between weight and height
+
+alt_mod_m1 <- lmer(GLUHFast ~ Gender + Age + Weight + Height + Weight:Height + ActivityLevel + FatMass + ArmLegMass + BMI + Ind36H + (1 | Name), data=new_data_fasting)
+model_performance(alt_mod_m1)
+
+alt2_mod_m1 <- lmer(GLUHFast ~ Age + BMI + Ind36H + (1 | Name), data=new_data_fasting)
+model_performance(alt2_mod_m1)
+plot(alt2_mod_m1, ylab="Residual", xlab="Fitted Value", main="alt2_mod_m1 Resid vs fitted")
+
+
+```
+
