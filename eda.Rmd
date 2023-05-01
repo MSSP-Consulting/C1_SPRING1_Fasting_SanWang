@@ -107,11 +107,17 @@ rownames(new_data_fasting) <- 1:nrow(new_data_fasting)
 #now we have a dataframe that be used to create our model
 ```
 
+```{r}
+#anova for 12h and 36H
+LeuRaHFast_anova <- aov(LeuRaHFast ~ Ind36H, data = new_data_fasting)
+summary(LeuRaHFast_anova)
+```
 
 ```{r}
 library(lme4)
 #multilevel model, varying intercepts, constant slopes
-m1 <- lmer(GLUHFast ~ Ind36H + AgeCat + (1 | Name), data=new_data_fasting)
+m1 <- lmer(LeuRaHFast ~ Ind36H + Age + (1 | Name), data=new_data_fasting)
+
 summary(m1)
 coef(m1)
 #every subject has a different intercept, but the changes in treatment and age are reflected in the coefficients for Ind36H and AgeCat
@@ -134,19 +140,19 @@ library(performance)
 model_performance(m1) #checking R2 
 
 library(ggplot2)
-g2 <- qplot(resid(m1),
+g1 <- qplot(resid(m1),
                geom = "histogram",
                bins = 10) +
          labs(title = "Histogram of residuals",
               x = "residual")
 
-g3 <- ggplot(data = new_data_fasting,
+g2 <- ggplot(data = new_data_fasting,
                aes(sample = resid(m1))) +
         geom_qq() +
         geom_qq_line(colour = "red") +
         labs(title = "Quantile plot of residuals", x="theoretical",y="sample")
 library(cowplot)
-plot_grid(g2, g3, ncol = 2, labels = "auto")
+plot_grid(g1, g3, ncol = 2, labels = "auto")
 ```
 
 ```{r}
